@@ -1,0 +1,46 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    pull_policy: weekly
+    restart: no
+    container_name: qdrant
+    ports:
+      - 6333:6333
+      - 6334:6334
+    expose:
+      - 6333
+      - 6334
+      - 6335
+    configs:
+      - source: qdrant_config
+        target: /qdrant/config/production.yaml
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__API_KEY: your_secret_api_key_here
+      QDRANT__SERVICE__READ_ONLY_API_KEY: your_secret_read_only_api_key_here
+
+  mcp:
+    build: .
+    pull_policy: build
+    container_name: mcp
+    ports:
+      - 8000:8000
+    volumes:
+      - ./data/mcp:/mcp
+    depends_on:
+      - qdrant
+    environment:
+      COLLECTION_NAME: lumi_documentation
+      COLLECTION_POLL_INTERVAL: 30
+      EMBEDDING_MODEL: BAAI/bge-small-en-v1.5
+      FASTEMBED_CACHE_PATH: /mcp/cache/fastembed
+      HF_HOME: /mcp/cache/huggingface
+      QDRANT__SERVICE__READ_ONLY_API_KEY: your_secret_read_only_api_key_here
+      QDRANT_URL: http://qdrant:6333
+      SERVER_NAME: "LUMI AIF Server"
+
+configs:
+  qdrant_config:
+    content: |
+      log_level: INFO

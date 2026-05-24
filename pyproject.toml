@@ -1,0 +1,28 @@
+[project]
+name = "laifs_mcp_server"
+version = "0.1.0"
+description = "LUMI AI Factory MCP Server"
+requires-python = ">=3.11"
+dependencies = [
+    "fastembed>=0.8",
+    "fastmcp>=3.3",
+    "langchain>=1.3",
+    "langchain-community>=0.4",
+    "langchain-qdrant>=1.1",
+]
+
+[project.optional-dependencies]
+index-docs = [
+    "langchain-text-splitters>=1.1",
+    "tiktoken>=0.13",
+    "transformers>=5.9",
+    "unstructured[md]>=0.22",
+]
+
+[project.scripts]
+index-docs = "laifs_mcp_server.index_docs:main"
+run-server = "laifs_mcp_server.server:main"
+
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
