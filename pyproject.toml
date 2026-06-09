@@ -20,7 +20,7 @@ index-docs = [
 ]
 
 [project.scripts]
-index-docs = "laifs_mcp_server.index_docs:main"
+create-index = "laifs_mcp_server.create_index:main"
 run-server = "laifs_mcp_server.server:main"
 
 [build-system]
