@@ -26,7 +26,7 @@ python3 -m venv .venv
 . .venv/bin/activate
 
 # Install the Python project in the virtual environment
-pip install -e .[index-docs]
+pip install -e .[index]
 
 # Create the index
 bash create_index.sh
