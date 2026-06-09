@@ -35,5 +35,5 @@ bash scripts/create_index.sh
 Finally, test the server using the `fastmcp` CLI tool.
 
 ```bash
-fastmcp call http://localhost:8000/mcp retrieve_docs query='ai factory mcp' k=1
+fastmcp call http://localhost:8000/mcp retrieve_docs query='agent infrastructure' k=1
 ```
