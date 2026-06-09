@@ -1,0 +1,11 @@
+[
+    {
+        "name": "LUMI-AI-Guide",
+        "remote": "https://github.com/Lumi-supercomputer/LUMI-AI-Guide.git"
+    },
+    {
+        "name": "lumi-userguide",
+        "remote": "https://github.com/Lumi-supercomputer/lumi-userguide.git",
+        "subdir": "docs"
+    }
+]

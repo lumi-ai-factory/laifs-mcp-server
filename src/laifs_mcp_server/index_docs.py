@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import json
 import os
 import subprocess
 
@@ -17,6 +18,8 @@ from langchain_qdrant import QdrantVectorStore
 
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Distance, VectorParams
+
+DEFAULT_GLOB = "*.md"
 
 
 def update_metadata(docs: list, base_path: Path):
@@ -43,7 +46,7 @@ def update_metadata(docs: list, base_path: Path):
         doc.metadata["source"] = source_prefix + "/" + str(file_path.relative_to(base_path))
 
 
-def load_documents(docs_path: Path, base_path: Path, glob):
+def load_documents(docs_path: Path, base_path: Path, glob: str):
     loader = DirectoryLoader(
         path=docs_path,
         glob=glob,
@@ -70,17 +73,17 @@ def split_documents(docs, model_name, chunk_size, chunk_overlap):
 
 
 def init_vector_store(url, api_key, collection_name, vector_size, model_name):
-    client = QdrantClient(
-        url=url,
-        api_key=api_key,
-    )
+    client = QdrantClient(url=url, api_key=api_key)
 
-    if not client.collection_exists(collection_name):
-        client.create_collection(
-            collection_name=collection_name,
-            vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
-        )
-        print(f"Created new collection '{collection_name}'")
+    if client.collection_exists(collection_name):
+        client.delete_collection(collection_name)
+        print(f"Deleted old collection '{collection_name}'")
+
+    client.create_collection(
+        collection_name=collection_name,
+        vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
+    )
+    print(f"Created new collection '{collection_name}'")
 
     vector_store = QdrantVectorStore(
         client=client,
@@ -93,9 +96,8 @@ def init_vector_store(url, api_key, collection_name, vector_size, model_name):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("base_path", help="Path to root directory of a data repo")
-    parser.add_argument("--docs-dir", default="", help="Path to docs, relative to data repo root")
-    parser.add_argument("--glob", default="*.md")
+    parser.add_argument("docs_root", help="Path to directory containing docs to index")
+    parser.add_argument("config_file", help="JSON config file with indexing parameters")
     parser.add_argument("--model-name", default="BAAI/bge-small-en-v1.5")
     parser.add_argument("--vector-size", type=int, default=384)
     parser.add_argument("--chunk-size", type=int, default=512)
@@ -105,21 +107,30 @@ def main():
     parser.add_argument("--collection-name", default="lumi_documentation")
     args = parser.parse_args()
 
-    docs_path = Path(args.base_path) / args.docs_dir
+    with open(args.config_file) as f:
+        config = json.load(f)
 
     print("Loading documents...")
-    docs = load_documents(
-        docs_path=docs_path,
-        base_path=Path(args.base_path),
-        glob=args.glob,
-    )
-    print(f"Loaded {len(docs)} documents from {docs_path}")
+    all_docs = []
+    for repo in config:
+        base_path = Path(args.docs_root) / repo["name"]
+        docs_path = base_path / (repo.get("subdir") or "")
+
+        docs = load_documents(
+            docs_path=docs_path,
+            base_path=base_path,
+            glob=repo.get("glob") or DEFAULT_GLOB,
+        )
+
+        all_docs += docs
+        print(f"Loaded {len(docs)} documents from {base_path}")
+    print(f"Total documents loaded: {len(all_docs)}")
 
     chunks = split_documents(
-        docs, model_name=args.model_name,
+        all_docs, model_name=args.model_name,
         chunk_size=args.chunk_size, chunk_overlap=args.chunk_overlap,
     )
-    print(f"Split documents into {len(chunks)} chunks")
+    print(f"Split {len(all_docs)} documents into {len(chunks)} chunks")
 
     vector_store = init_vector_store(
         url=args.qdrant_url,
@@ -129,7 +140,7 @@ def main():
         model_name=args.model_name,
     )
 
-    print("Indexing passages...")
+    print("Indexing chunks...")
     vector_store.add_documents(
         documents=chunks,
         ids=[str(uuid4()) for _ in range(len(chunks))],

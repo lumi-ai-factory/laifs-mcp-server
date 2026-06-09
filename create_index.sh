@@ -1,20 +1,15 @@
 #!/bin/bash
 
-set -eu
+set -euo pipefail
 
-DATA_DIR=
+DOCS_ROOT=data/docs
+CONFIG_FILE=config/index.json
 QDRANT_API_KEY=your_secret_api_key_here
 
-rm -rf data/docs && mkdir -p data/docs
-git clone https://github.com/Lumi-supercomputer/LUMI-AI-Guide.git data/docs/LUMI-AI-Guide
-git clone https://github.com/Lumi-supercomputer/lumi-userguide.git data/docs/lumi-userguide
+rm -rf "$DOCS_ROOT" && mkdir -p "$DOCS_ROOT"
 
-curl -X DELETE \
-    "http://localhost:6333/collections/lumi_documentation" \
-    --header "api-key: $QDRANT_API_KEY"
+for remote in $(jq -r .[].remote "$CONFIG_FILE"); do
+    git clone "$remote" "$DOCS_ROOT/$(basename $remote .git)"
+done
 
-index-docs data/docs/LUMI-AI-Guide \
-    --qdrant-api-key $QDRANT_API_KEY
-index-docs data/docs/lumi-userguide \
-    --docs-dir docs \
-    --qdrant-api-key $QDRANT_API_KEY
+index-docs "$DOCS_ROOT" config/index.json --qdrant-api-key $QDRANT_API_KEY
