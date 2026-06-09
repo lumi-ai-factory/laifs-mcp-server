@@ -29,7 +29,7 @@ python3 -m venv .venv
 pip install -e .[index-docs]
 
 # Create the index
-bash scripts/create_index.sh
+bash create_index.sh
 ```
 
 Finally, test the server using the `fastmcp` CLI tool.

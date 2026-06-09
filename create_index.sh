@@ -2,6 +2,7 @@
 
 set -eu
 
+DATA_DIR=
 QDRANT_API_KEY=your_secret_api_key_here
 
 rm -rf data/docs && mkdir -p data/docs
