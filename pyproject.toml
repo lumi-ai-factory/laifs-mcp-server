@@ -1,5 +1,5 @@
 [project]
-name = "laifs_mcp_server"
+name = "laifs-mcp-server"
 version = "0.1.0"
 description = "LUMI AI Factory MCP Server"
 requires-python = ">=3.11"
