@@ -97,6 +97,7 @@ def main():
     parser.add_argument("--qdrant-url", default="http://localhost:6333")
     parser.add_argument("--qdrant-api-key", default=None)
     parser.add_argument("--collection-name", default="lumi_documentation")
+    parser.add_argument("--batch-size", type=int, default=64)
     args = parser.parse_args()
 
     with open(args.config_file) as f:
@@ -137,6 +138,7 @@ def main():
     vector_store.add_documents(
         documents=chunks,
         ids=[str(uuid4()) for _ in range(len(chunks))],
+        batch_size=args.batch_size,
     )
     print("Done!")
 
