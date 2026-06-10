@@ -22,15 +22,7 @@ from qdrant_client.http.models import Distance, VectorParams
 DEFAULT_GLOB = "*.md"
 
 
-def update_metadata(docs: list, base_path: Path):
-    url = subprocess.run(
-        ["git", "remote", "get-url", "origin"],
-        capture_output=True,
-        cwd=base_path,
-        check=True,
-        text=True,
-    ).stdout.strip()
-
+def update_metadata(docs: list, base_path: Path, remote: str):
     commit = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"],
         capture_output=True,
@@ -39,14 +31,14 @@ def update_metadata(docs: list, base_path: Path):
         text=True,
     ).stdout.strip()
 
-    source_prefix = url.removesuffix(".git") + "/blob/" + commit
+    source_prefix = remote.removesuffix(".git") + "/blob/" + commit
 
     for doc in docs:
         file_path = Path(doc.metadata["source"])
         doc.metadata["source"] = source_prefix + "/" + str(file_path.relative_to(base_path))
 
 
-def load_documents(docs_path: Path, base_path: Path, glob: str):
+def load_documents(docs_path: Path, base_path: Path, remote: str, glob: str):
     loader = DirectoryLoader(
         path=docs_path,
         glob=glob,
@@ -55,7 +47,7 @@ def load_documents(docs_path: Path, base_path: Path, glob: str):
     )
 
     docs = loader.load()
-    update_metadata(docs, base_path)
+    update_metadata(docs, base_path=base_path, remote=remote)
 
     return docs
 
@@ -113,12 +105,13 @@ def main():
     print("Loading documents...")
     all_docs = []
     for repo in config:
-        base_path = Path(args.docs_root) / repo["name"]
+        base_path = Path(args.docs_root) / repo.get("name")
         docs_path = base_path / (repo.get("subdir") or "")
 
         docs = load_documents(
             docs_path=docs_path,
             base_path=base_path,
+            remote=repo.get("remote"),
             glob=repo.get("glob") or DEFAULT_GLOB,
         )
 
