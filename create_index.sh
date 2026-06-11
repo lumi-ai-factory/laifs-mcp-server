@@ -12,4 +12,4 @@ for remote in $(jq -r .[].remote "$CONFIG_FILE"); do
     git clone "$remote" "$DOCS_ROOT/$(basename $remote .git)"
 done
 
-create-index "$DOCS_ROOT" config/index.json --qdrant-api-key $QDRANT_API_KEY --batch-size 32
+create-index "$DOCS_ROOT" "$CONFIG_FILE" --qdrant-api-key "$QDRANT_API_KEY" --batch-size 32
