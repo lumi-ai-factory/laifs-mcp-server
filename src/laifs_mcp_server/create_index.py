@@ -64,7 +64,7 @@ def split_documents(docs, model_name, chunk_size, chunk_overlap):
     return chunks
 
 
-def init_vector_store(url, api_key, collection_name, vector_size, model_name):
+def init_vector_store(url, api_key, collection_name, vector_size, model_name, threads):
     client = QdrantClient(url=url, api_key=api_key)
 
     if client.collection_exists(collection_name):
@@ -80,7 +80,10 @@ def init_vector_store(url, api_key, collection_name, vector_size, model_name):
     vector_store = QdrantVectorStore(
         client=client,
         collection_name=collection_name,
-        embedding=FastEmbedEmbeddings(model_name=model_name),
+        embedding=FastEmbedEmbeddings(
+            model_name=model_name,
+            threads=threads,
+        ),
     )
 
     return vector_store
@@ -91,12 +94,13 @@ def main():
     parser.add_argument("docs_root", help="Path to directory containing docs to index")
     parser.add_argument("config_file", help="JSON config file with indexing parameters")
     parser.add_argument("--model-name", default="BAAI/bge-small-en-v1.5")
-    parser.add_argument("--vector-size", type=int, default=384)
     parser.add_argument("--chunk-size", type=int, default=512)
     parser.add_argument("--chunk-overlap", type=int, default=16)
     parser.add_argument("--qdrant-url", default="http://localhost:6333")
     parser.add_argument("--qdrant-api-key", default=None)
     parser.add_argument("--collection-name", default="lumi_documentation")
+    parser.add_argument("--vector-size", type=int, default=384)
+    parser.add_argument("--threads", type=int, default=0)
     parser.add_argument("--batch-size", type=int, default=64)
     args = parser.parse_args()
 
@@ -132,6 +136,7 @@ def main():
         collection_name=args.collection_name,
         vector_size=args.vector_size,
         model_name=args.model_name,
+        threads=args.threads,
     )
 
     print("Indexing chunks...")
