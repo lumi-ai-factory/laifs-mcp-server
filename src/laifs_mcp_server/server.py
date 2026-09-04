@@ -13,21 +13,26 @@ from langchain_qdrant import QdrantVectorStore
 
 
 class LumiServiceStatus:
-    def __init__(self, interval: float = 2.0):
-        self.interval = interval
+    def __init__(self, check_interval: float = 2.0):
+        self.base_url = "https://status.lumi.csc.fi/api/"
         self.session = requests.Session()
 
-        self.last_status_check = 0
-        self.status = None
+        self.check_interval = check_interval
 
-    def get_status(self):
+        self.data = {
+            "status": {"last_check": 0, "response": None},
+            "maintenance": {"last_check": 0, "response": None},
+            "incidents": {"last_check": 0, "response": None},
+        }
+
+    def fetch(self, query: str = "status") -> dict | list:
         current_time = time.time()
 
-        if current_time - self.last_status_check >= self.interval:
-            self.status = self.session.get("https://status.lumi.csc.fi/api/status")
-            self.last_status_check = current_time
+        if current_time - self.data[query]["last_check"] >= self.check_interval:
+            self.data[query]["response"] = self.session.get(self.base_url + query)
+            self.data[query]["last_check"] = current_time
 
-        return self.status
+        return self.data[query]["response"]
 
 
 logger = logging.getLogger(__name__)
@@ -82,9 +87,22 @@ def retrieve_docs(
 
 
 @mcp.tool()
-def get_service_status() -> dict | str:
-    """Get the status of LUMI and related services."""
-    return service_status.get_status().json()
+def get_service_status(
+    query: Annotated[
+        str, Field(description="'status, 'maintenance' or 'incidents'"),
+    ] = "status"
+) -> dict | str:
+    """Get status information on LUMI and related services.
+    * status - overall status, node availability, response time
+    * maintenance - information on outages due to maintenance
+    * incidents - information on outages due to incidents
+    """
+    if query not in service_status.data.keys():
+        return (
+            f"Unknown query '{query}'. "
+            "Recognized values are 'status', 'maintenance' and 'incidents'."
+        )
+    return service_status.fetch(query).json()
 
 
 def main():
