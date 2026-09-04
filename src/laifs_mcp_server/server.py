@@ -1,5 +1,6 @@
 import logging
 import os
+import requests
 import time
 
 from fastmcp import FastMCP
@@ -9,6 +10,25 @@ from typing import Annotated
 
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_qdrant import QdrantVectorStore
+
+
+class LumiServiceStatus:
+    def __init__(self, interval: float = 2.0):
+        self.interval = interval
+        self.session = requests.Session()
+
+        self.last_status_check = 0
+        self.status = None
+
+    def get_status(self):
+        current_time = time.time()
+
+        if current_time - self.last_status_check >= self.interval:
+            self.status = self.session.get("https://status.lumi.csc.fi/api/status")
+            self.last_status_check = current_time
+
+        return self.status
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +51,8 @@ vector_store = QdrantVectorStore(
     collection_name=os.environ["COLLECTION_NAME"],
     embedding=embedding,
 )
+
+service_status = LumiServiceStatus()
 
 mcp = FastMCP(name=os.environ["SERVER_NAME"], mask_error_details=True)
 
@@ -57,6 +79,12 @@ def retrieve_docs(
     ]
 
     return docs
+
+
+@mcp.tool()
+def get_service_status() -> dict | str:
+    """Get the status of LUMI and related services."""
+    return service_status.get_status().json()
 
 
 def main():
